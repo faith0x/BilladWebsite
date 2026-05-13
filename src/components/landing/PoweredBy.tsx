@@ -44,7 +44,7 @@ const PoweredBy = () => {
   const items = Array.from({ length: REPEAT }).flatMap(() => PARTNERS);
 
   return (
-    <section className="relative py-10 md:py-14 overflow-hidden" aria-label="Powered by">
+    <section className="relative py-8 md:py-10 overflow-hidden" aria-label="Powered by">
       <div className="container mb-6">
         <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground text-center">
           Powered by
@@ -75,3 +75,4 @@ const PoweredBy = () => {
 };
 
 export default PoweredBy;
+

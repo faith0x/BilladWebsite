@@ -85,11 +85,11 @@ const Hero = () => {
     <section
       ref={ref}
       className="relative"
-      style={{ height: '300vh' }}
+      style={{ height: '200vh' }}
       aria-label="Hero"
     >
       <div
-        className="sticky top-16 h-[calc(100vh-4rem)] w-full overflow-hidden flex items-center justify-center px-3 md:px-6 py-3 md:py-4"
+        className="sticky top-16 h-[calc(100vh-4rem)] w-full overflow-hidden flex items-center justify-center px-3 md:px-6 py-0"
       >
         <GradientOrbs />
 
@@ -181,3 +181,4 @@ const Hero = () => {
 };
 
 export default Hero;
+

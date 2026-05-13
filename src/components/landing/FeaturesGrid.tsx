@@ -44,7 +44,7 @@ const FEATURES: Feature[] = [
 ];
 
 const FeaturesGrid = () => (
-  <section id="features" className="relative py-20 md:py-28" aria-label="Features">
+  <section id="features" className="relative py-16 md:py-20" aria-label="Features">
     <div className="container">
       <div className="max-w-2xl mb-16">
         <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground mb-4">Platform</p>
@@ -77,3 +77,4 @@ const FeaturesGrid = () => (
 );
 
 export default FeaturesGrid;
+
