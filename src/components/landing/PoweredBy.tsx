@@ -15,7 +15,7 @@ const PARTNERS = [
 /* Duplicate N times so the track always overflows viewport */
 const REPEAT = 4;
 
-const PoweredBy = () => {
+const PoweredBy = () => { 
   const trackRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
