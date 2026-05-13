@@ -7,22 +7,23 @@ import GradientOrbs from './GradientOrbs';
 const LINES = ['Put your Brand', 'on any billboard', 'in the world.'];
 const VIDEO_SRC =
   'https://res.cloudinary.com/dnkzhdbo1/video/upload/v1778661661/lv_0_20260513091536_mf8rhd.mp4';
-const VIDEO_DURATION = 15; // seconds
-const KEYFRAME_STEP = 0.9; // seconds — sync points
+const VIDEO_DURATION = 15;
+const KEYFRAME_STEP = 0.9;
 
-// ─── Layout constants ───────────────────────────────────────────────────────
-const CARD_VH = 72;        // sticky card height
-const NAVBAR_PX = 64;      // top-16
-const SECTION_VH = 240;      // reduced from 550 — ~170vh of actual scroll distance
+const CARD_VH = 72;
+const NAVBAR_PX = 64;
+// 220vh gives ~148vh of actual scroll distance — about 1.5 screens to scrub a 15s video.
+// This eliminates the multi-screen black gap you had at 550vh.
+const SECTION_VH = 220;
 
 const Hero = () => {
-  // Pass the real sticky height (72vh) and navbar offset (64px) so progress math is exact
-  const { ref, progress } = useScrollProgress<HTMLDivElement>(true, CARD_VH, NAVBAR_PX);
+  // Pass the real sticky height (72vh) and navbar offset (64px)
+  const { ref, progress } = useScrollProgress<HTMLDivElement>(true, NAVBAR_PX, CARD_VH);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const targetTimeRef = useRef(0);
   const rafRef = useRef<number | null>(null);
 
-  // Map scroll progress → video time with soft keyframe snap
+  // Scroll-synced video scrub
   useEffect(() => {
     const raw = progress * VIDEO_DURATION;
     const nearest = Math.round(raw / KEYFRAME_STEP) * KEYFRAME_STEP;
@@ -45,7 +46,6 @@ const Hero = () => {
     return () => { if (rafRef.current != null) cancelAnimationFrame(rafRef.current); };
   }, []);
 
-  // Text lines synced to video keyframes
   const LINE_PEAKS = [0.12, 0.42, 0.72];
   const lineStyle = (i: number) => {
     const peak = LINE_PEAKS[i];
