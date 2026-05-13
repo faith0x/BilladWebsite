@@ -5,6 +5,6 @@ const GradientOrbs = ({ className = '' }: { className?: string }) => (
     <div className="absolute bottom-0 left-1/3 h-[32rem] w-[32rem] rounded-full bg-spectrum-cyan/25 blur-[120px] animate-orb-drift [animation-delay:-8s]" />
     <div className="absolute -bottom-40 right-1/4 h-[28rem] w-[28rem] rounded-full bg-spectrum-mint/20 blur-[120px] animate-orb-drift [animation-delay:-2s]" />
   </div>
-);
+); 
 
 export default GradientOrbs;
