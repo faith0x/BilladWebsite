@@ -147,7 +147,7 @@ const Hero = () => {
             }}
           >
             <p className="max-w-xl text-xs md:text-sm text-white/80">
-              A global billboard marketplace — powered by geospatial AI.
+              A global billboard marketplace — powered by geospatial AI. 
             </p>
             <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3">
               <Button
