@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 
 /**
- * Returns sticky-section scroll progress (0 → 1) for an element taller than the viewport.
- * 0 = element top is aligned with the viewport top
- * 1 = element has scrolled through all of its extra height
+ * Returns sticky-section scroll progress (0 → 1).
  *
- * lockUntilComplete: when true, prevents the page from scrolling past the
- * sticky section until progress reaches 1 (i.e. the full scroll-effect plays).
+ * @param lockUntilComplete   intercept wheel/touch until progress === 1
+ * @param stickyHeightVh      height of the sticky container in vh (default 100)
+ * @param stickyOffsetPx      top offset in px (e.g. 64 for a top-16 navbar)
  */
 export function useScrollProgress<T extends HTMLElement = HTMLDivElement>(
-  lockUntilComplete = false
+  lockUntilComplete = false,
+  stickyHeightVh = 100,
+  stickyOffsetPx = 0
 ) {
   const ref = useRef<T | null>(null);
   const [progress, setProgress] = useState(0);
@@ -22,7 +23,9 @@ export function useScrollProgress<T extends HTMLElement = HTMLDivElement>(
       if (!el) return 0;
       const rect = el.getBoundingClientRect();
       const vh = window.innerHeight || 1;
-      const scrollable = Math.max(1, rect.height - vh);
+      const stickyHeight = (stickyHeightVh / 100) * vh;
+      // Total distance the section must travel before the sticky card unpins
+      const scrollable = Math.max(1, rect.height - stickyHeight - stickyOffsetPx);
       return Math.min(1, Math.max(0, -rect.top / scrollable));
     };
 
@@ -30,30 +33,24 @@ export function useScrollProgress<T extends HTMLElement = HTMLDivElement>(
       setProgress(getProgress());
     };
 
-    // ── Scroll-lock wheel / touch handler ──────────────────────────────────
-    // When the hero is in view and progress < 1, we intercept wheel/touch
-    // events and manually drive window.scrollY instead of letting the browser
-    // free-scroll. Once progress hits 1 we release.
     let touchStartY = 0;
 
     const onWheel = (e: WheelEvent) => {
       if (!lockUntilComplete) return;
       const el = ref.current;
       if (!el) return;
-      const p = getProgress();
 
       const rect = el.getBoundingClientRect();
-      const inView = rect.top <= 0 && rect.bottom >= window.innerHeight;
+      const p = getProgress();
+      // Lock only while the section is in view and we haven't finished scrubbing
+      const inView = rect.top <= stickyOffsetPx && rect.bottom >= window.innerHeight;
 
-      if (!inView) return; // user has already passed or not yet reached hero
+      if (!inView) return;
 
       if (p < 1) {
-        // Consume the event so the browser doesn't also scroll
         e.preventDefault();
-        const delta = e.deltaY;
-        window.scrollBy({ top: delta, behavior: 'instant' });
+        window.scrollBy({ top: e.deltaY, behavior: 'instant' });
       }
-      // At p === 1 we let the browser handle it naturally (flow past the hero)
     };
 
     const onTouchStart = (e: TouchEvent) => {
@@ -64,10 +61,10 @@ export function useScrollProgress<T extends HTMLElement = HTMLDivElement>(
       if (!lockUntilComplete) return;
       const el = ref.current;
       if (!el) return;
-      const p = getProgress();
 
+      const p = getProgress();
       const rect = el.getBoundingClientRect();
-      const inView = rect.top <= 0 && rect.bottom >= window.innerHeight;
+      const inView = rect.top <= stickyOffsetPx && rect.bottom >= window.innerHeight;
 
       if (!inView) return;
 
@@ -104,7 +101,7 @@ export function useScrollProgress<T extends HTMLElement = HTMLDivElement>(
         window.removeEventListener('touchmove', onTouchMove);
       }
     };
-  }, [lockUntilComplete]);
+  }, [lockUntilComplete, stickyHeightVh, stickyOffsetPx]);
 
   return { ref, progress };
 }
