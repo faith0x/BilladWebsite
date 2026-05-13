@@ -10,21 +10,25 @@ const VIDEO_SRC =
 const VIDEO_DURATION = 15; // seconds
 const KEYFRAME_STEP = 0.9; // seconds — sync points
 
+// ─── Layout constants ───────────────────────────────────────────────────────
+// The sticky card occupies this fraction of the viewport height.
+// ~72 vh leaves ~28 vh below it (minus navbar) so the next section peeks.
+const CARD_VH = 72; // vh
+
+// Tall enough that the user has plenty of room to scrub the full video.
+// scrollable height = SECTION_VH - 100vh.  At 550 vh → 450 vh to scrub.
+const SECTION_VH = 550;
+
 const Hero = () => {
-  const { ref, progress } = useScrollProgress<HTMLDivElement>();
+  // lockUntilComplete=true → wheel/touch are intercepted until progress===1
+  const { ref, progress } = useScrollProgress<HTMLDivElement>(true);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const targetTimeRef = useRef(0);
   const rafRef = useRef<number | null>(null);
 
-  // Make hero tall enough that scroll = 1 covers the full video at a comfortable pace.
-  // ~120vh per 0.9s keyframe feels smooth without being interminable.
-  const totalKeyframes = Math.floor(VIDEO_DURATION / KEYFRAME_STEP); // 16
-
-  // Map scroll progress -> video time, snapping smoothly toward nearest 0.9s keyframe
-  // so the playhead "lands" on syncs but interpolates in between.
+  // Map scroll progress → video time with soft keyframe snap
   useEffect(() => {
     const raw = progress * VIDEO_DURATION;
-    // Soft snap: blend raw time with nearest keyframe (30% pull) for subtle sync feel
     const nearest = Math.round(raw / KEYFRAME_STEP) * KEYFRAME_STEP;
     const target = raw * 0.7 + nearest * 0.3;
     targetTimeRef.current = Math.min(VIDEO_DURATION - 0.01, Math.max(0, target));
@@ -32,44 +36,32 @@ const Hero = () => {
     if (rafRef.current != null) return;
     const tick = () => {
       const v = videoRef.current;
-      if (!v) {
-        rafRef.current = null;
-        return;
-      }
-      const current = v.currentTime;
-      const diff = targetTimeRef.current - current;
-      if (Math.abs(diff) < 0.005) {
-        rafRef.current = null;
-        return;
-      }
-      // Smooth easing toward target time
-      v.currentTime = current + diff * 0.18;
+      if (!v) { rafRef.current = null; return; }
+      const diff = targetTimeRef.current - v.currentTime;
+      if (Math.abs(diff) < 0.005) { rafRef.current = null; return; }
+      v.currentTime += diff * 0.18;
       rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);
   }, [progress]);
 
   useEffect(() => {
-    return () => {
-      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
-    };
+    return () => { if (rafRef.current != null) cancelAnimationFrame(rafRef.current); };
   }, []);
 
-  // Sync each text line to a keyframe in the video.
-  // Peaks at video times ~1.8s, 6.3s, 10.8s → progress 0.12, 0.42, 0.72.
+  // Text lines synced to video keyframes
   const LINE_PEAKS = [0.12, 0.42, 0.72];
   const lineStyle = (i: number) => {
     const peak = LINE_PEAKS[i];
     const start = Math.max(0, peak - 0.18);
-    const end = peak;
-    const t = range(progress, start, end);
+    const t = range(progress, start, peak);
     const yVh = lerp(54, 0, t);
     const rx = lerp(42, 0, t);
     const scale = lerp(0.5, 1, t);
     const opacity = t === 0 ? 0 : lerp(0, 1, Math.min(1, t * 1.4));
     const blur = lerp(10, 0, t);
     const fadeOutStart = i < 2 ? LINE_PEAKS[i + 1] - 0.05 : 0.92;
-    const fadeOutEnd = i < 2 ? LINE_PEAKS[i + 1] + 0.05 : 1.0;
+    const fadeOutEnd   = i < 2 ? LINE_PEAKS[i + 1] + 0.05 : 1.0;
     const out = range(progress, fadeOutStart, fadeOutEnd);
     return {
       transform: `translate3d(0, ${yVh}%, 0) rotateX(${rx}deg) scale(${scale})`,
@@ -85,20 +77,33 @@ const Hero = () => {
     <section
       ref={ref}
       className="relative"
-      style={{ height: '200vh' }}
+      // Tall section — user must scroll through the whole thing
+      style={{ height: `${SECTION_VH}vh` }}
       aria-label="Hero"
     >
+      {/*
+        Sticky wrapper — shorter than 100 vh so the section below peeks.
+        top-16 accounts for the fixed navbar (64 px).
+        Height = CARD_VH vh → card is fully visible + next section shows below.
+      */}
       <div
-        className="sticky top-16 h-[calc(100vh-4rem)] w-full overflow-hidden flex items-center justify-center px-3 md:px-6 py-0"
+        className="sticky top-16 w-full overflow-hidden flex flex-col items-center justify-start px-3 md:px-6 pt-3 md:pt-4"
+        style={{ height: `${CARD_VH}vh` }}
       >
         <GradientOrbs />
 
-        {/* 16:9 stage with scroll-scrubbed video background */}
+        {/* 16:9 card — fills available sticky height */}
         <div
-          className="relative w-full max-w-[1500px] max-h-full rounded-2xl md:rounded-3xl bg-black overflow-hidden shadow-[0_40px_120px_-20px_hsl(var(--spectrum-violet)/0.55)]"
-          style={{ aspectRatio: '16 / 9' }}
+          className="relative w-full rounded-2xl md:rounded-3xl bg-black overflow-hidden shadow-[0_40px_120px_-20px_hsl(var(--spectrum-violet)/0.55)]"
+          style={{
+            // Maintain 16:9 but never exceed the sticky container height.
+            // We use aspect-ratio and let height be the constraint.
+            aspectRatio: '16 / 9',
+            maxHeight: '100%',
+            maxWidth: `calc((${CARD_VH}vh - 1.5rem) * 16 / 9)`,
+          }}
         >
-          {/* Background video — scroll-scrubbed */}
+          {/* Scroll-scrubbed video */}
           <video
             ref={videoRef}
             src={VIDEO_SRC}
@@ -168,12 +173,12 @@ const Hero = () => {
           </div>
         </div>
 
-        {/* Scroll hint */}
+        {/* Scroll hint — fades out as soon as user starts scrolling */}
         <div
-          className="absolute bottom-4 left-1/2 -translate-x-1/2 text-[10px] uppercase tracking-[0.3em] text-muted-foreground"
-          style={{ opacity: lerp(1, 0, range(progress, 0, 0.12)) }}
+          className="mt-3 text-[10px] uppercase tracking-[0.3em] text-muted-foreground"
+          style={{ opacity: lerp(1, 0, range(progress, 0, 0.1)) }}
         >
-          Scroll
+          Scroll to explore
         </div>
       </div>
     </section>
@@ -181,4 +186,3 @@ const Hero = () => {
 };
 
 export default Hero;
-
